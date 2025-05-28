@@ -1,10 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Select, Typography, Spin, Card, Divider, Empty } from 'antd';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import {
+  Select,
+  Typography,
+  Spin,
+  Card,
+  Divider,
+  Empty,
+  Button,
+  Tag,
+  Popconfirm,
+  message as antdMessage,
+} from 'antd';
+import { collection, getDocs, query, where, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import c from 'react-syntax-highlighter/dist/esm/languages/hljs/c';
 import { atomOneLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { DeleteOutlined } from '@ant-design/icons';
 
 SyntaxHighlighter.registerLanguage('c', c);
 
@@ -42,12 +54,9 @@ function TeacherSubmissions() {
         return;
       }
 
-
-      console.log(selectedAssignment);
-      
       const q = query(
-       collection(db, 'submissions'),
-  where('assignmentId', '==', selectedAssignment)
+        collection(db, 'submissions'),
+        where('assignmentId', '==', selectedAssignment)
       );
 
       try {
@@ -67,6 +76,31 @@ function TeacherSubmissions() {
 
     fetchSubmissions();
   }, [selectedAssignment]);
+
+  const handleMark = async (id, result) => {
+    try {
+      const submissionRef = doc(db, 'submissions', id);
+      await updateDoc(submissionRef, { result });
+      setSubmissions(prev =>
+        prev.map(sub => (sub.id === id ? { ...sub, result } : sub))
+      );
+      antdMessage.success(`✅ Đã đánh dấu bài là "${result}"`);
+    } catch (error) {
+      console.error('Lỗi khi cập nhật:', error);
+      antdMessage.error('❌ Lỗi khi chấm bài.');
+    }
+  };
+
+  const handleDeleteSubmission = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'submissions', id));
+      setSubmissions(prev => prev.filter(sub => sub.id !== id));
+      antdMessage.success('🗑️ Đã xoá bài nộp.');
+    } catch (error) {
+      console.error('Lỗi khi xoá bài nộp:', error);
+      antdMessage.error('❌ Không thể xoá bài nộp.');
+    }
+  };
 
   return (
     <div style={{ maxWidth: 1000, margin: 'auto', padding: 24 }}>
@@ -111,6 +145,16 @@ function TeacherSubmissions() {
                 </Text>
               </>
             }
+            extra={
+              <Popconfirm
+                title="Xác nhận xoá bài nộp này?"
+                onConfirm={() => handleDeleteSubmission(sub.id)}
+                okText="Xóa"
+                cancelText="Hủy"
+              >
+                <DeleteOutlined style={{ color: 'red' }} />
+              </Popconfirm>
+            }
           >
             <SyntaxHighlighter
               language="c"
@@ -123,6 +167,33 @@ function TeacherSubmissions() {
             >
               {sub.code}
             </SyntaxHighlighter>
+
+            <Divider />
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                {sub.result === 'pass' && <Tag color="green">✅ Pass</Tag>}
+                {sub.result === 'fail' && <Tag color="red">❌ Not Pass</Tag>}
+                {!sub.result && <Tag color="default">Chưa chấm</Tag>}
+              </div>
+              <div>
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => handleMark(sub.id, 'pass')}
+                  style={{ marginRight: 8 }}
+                >
+                Pass
+                </Button>
+                <Button
+                  danger
+                  size="small"
+                  onClick={() => handleMark(sub.id, 'fail')}
+                >
+                Not Pass
+                </Button>
+              </div>
+            </div>
           </Card>
         ))}
       </div>
