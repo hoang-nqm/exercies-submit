@@ -15,7 +15,7 @@ import { collection, getDocs, query, where, updateDoc, doc, deleteDoc } from 'fi
 import { db } from '../firebase/firebaseConfig';
 import { Light as SyntaxHighlighter } from 'react-syntax-highlighter';
 import c from 'react-syntax-highlighter/dist/esm/languages/hljs/c';
-import { atomOneLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs'; // VS Code dark theme
 import { DeleteOutlined } from '@ant-design/icons';
 
 SyntaxHighlighter.registerLanguage('c', c);
@@ -29,21 +29,23 @@ function TeacherSubmissions() {
   const [submissions, setSubmissions] = useState([]);
   const [loadingSubs, setLoadingSubs] = useState(false);
 
-  // Load danh sách đề bài
   useEffect(() => {
-    const fetchAssignments = async () => {
-      const querySnapshot = await getDocs(collection(db, 'assignments'));
-      const data = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setAssignments(data);
-    };
+   const fetchAssignments = async () => {
+    const querySnapshot = await getDocs(collection(db, 'assignments'));
+    const data = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    setAssignments(data);
 
-    fetchAssignments();
+    if (data.length > 0 && !selectedAssignment) {
+      setSelectedAssignment(data[0].id);
+    }
+  };
+
+  fetchAssignments();
   }, []);
 
-  // Load bài nộp theo đề
   useEffect(() => {
     const fetchSubmissions = async () => {
       setLoadingSubs(true);
@@ -103,10 +105,10 @@ function TeacherSubmissions() {
   };
 
   return (
-    <div style={{ maxWidth: 1000, margin: 'auto', padding: 24 }}>
-      <Title level={2} style={{ textAlign: 'center' }}>Xem bài nộp theo đề</Title>
+    <div style={{ maxWidth: 1000, margin: 'auto', padding: 24, backgroundColor: '#1e1e1e', color: '#d4d4d4', minHeight: '100vh' }}>
+      <Title level={2} style={{ textAlign: 'center', color: '#ffffff' }}>📄 Views Answer</Title>
 
-      <Text strong>Chọn đề bài:</Text>
+      <Text strong style={{ color: '#ffffff' }}>Chọn đề bài:</Text>
       <Select
         style={{ width: '100%', marginTop: 8, marginBottom: 24 }}
         placeholder="-- Chọn đề bài --"
@@ -134,16 +136,16 @@ function TeacherSubmissions() {
         {submissions.map((sub) => (
           <Card
             key={sub.id}
-            style={{ marginBottom: 24 }}
+            style={{ marginBottom: 24, backgroundColor: '#252526', borderColor: '#333' }}
             title={
-              <>
+              <span style={{ color: '#dcdcaa' }}>
                 {sub.studentName} ({sub.studentId}){' '}
-                <Text type="secondary" style={{ fontSize: 13 }}>
+                <Text type="secondary" style={{ fontSize: 13, color: '#cccccc' }}>
                   – {sub.timestamp?.seconds
                     ? new Date(sub.timestamp.seconds * 1000).toLocaleString()
                     : ''}
                 </Text>
-              </>
+              </span>
             }
             extra={
               <Popconfirm
@@ -152,28 +154,29 @@ function TeacherSubmissions() {
                 okText="Xóa"
                 cancelText="Hủy"
               >
-                <DeleteOutlined style={{ color: 'red' }} />
+                <DeleteOutlined style={{ color: '#f14c4c' }} />
               </Popconfirm>
             }
           >
             <SyntaxHighlighter
               language="c"
-              style={atomOneLight}
+              style={vs2015}
               customStyle={{
                 borderRadius: '8px',
                 padding: '1rem',
-                background: '#f9f9f9'
+                background: '#1e1e1e',
+                fontSize: 14
               }}
             >
               {sub.code}
             </SyntaxHighlighter>
 
-            <Divider />
+            <Divider style={{ borderColor: '#3c3c3c' }} />
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 {sub.result === 'pass' && <Tag color="green">✅ Pass</Tag>}
-                {sub.result === 'fail' && <Tag color="red">❌ Not Pass</Tag>}
+                {sub.result === 'fail' && <Tag color="volcano">❌ Not Pass</Tag>}
                 {!sub.result && <Tag color="default">Chưa chấm</Tag>}
               </div>
               <div>
@@ -181,16 +184,17 @@ function TeacherSubmissions() {
                   type="primary"
                   size="small"
                   onClick={() => handleMark(sub.id, 'pass')}
-                  style={{ marginRight: 8 }}
+                  style={{ marginRight: 8, backgroundColor: '#0e639c', borderColor: '#0e639c' }}
                 >
-                Pass
+                  Pass
                 </Button>
                 <Button
                   danger
                   size="small"
                   onClick={() => handleMark(sub.id, 'fail')}
+                  style={{ backgroundColor: '#a4262c', borderColor: '#a4262c' }}
                 >
-                Not Pass
+                  Not Pass
                 </Button>
               </div>
             </div>
